@@ -1,0 +1,488 @@
+---
+title: "Crop Production in Malawi "
+author: "Maxwell Mkondiwa"
+output:
+  flexdashboard::flex_dashboard:
+    #theme: paper
+    social: menu
+    theme: flatly
+    #favicon: img/ios7-location-outline.png
+    #source_code: embed
+    #runtime: shiny
+---
+```{r setup, include=FALSE}
+rm(list=ls())
+# prep workspace
+#devtools::install_github("rstudio/crosstalk")
+#new_lib_loc <- .libPaths()[2]
+#devtools::install_github("dmurdoch/leaflet@crosstalk4")
+#devtools::install_github("rstudio/crosstalk")
+#devtools::install_github('rstudio/rmarkdown')
+library(dplyr)  # tidy data manipulation
+library(leaflet)  # interative mapping
+library(DT)  # interactive tables
+library(crosstalk)  # inter-widget interactivity
+#sch <- readRDS("data/gias_sample.RDS")
+#library(mapview)
+#library(leaflet)
+library(ggplot2)
+library(sp)
+library(spdep)
+library(rgdal)
+library(DT)
+library(dplyr)
+library(rio)
+library(sf)
+library(ggthemes)
+#library(leafgl)
+#library(leafpop)
+
+#setwd("C:/Users/User/Desktop/RShiny")
+#setwd("G:/My Drive/MalawiAgriculturalEquilibriumDisplacementModel/RShinyApp")
+#load("sd_mapall59.rda")
+load("G:/My Drive/MalawiAgriculturalEquilibriumDisplacementModel/RShinyApp/sd_mapall3.rda")
+
+
+```
+
+Interactives {data-icon="ion-stats-bars"}
+=====================================
+
+
+Column {data-width=400}
+-------------------------------------
+
+
+### About the dashboard
+
+This dashboard is aimed at disseminating Agricultural Production Estimates (APES) by providing a platform for interactive data visualization. It also allows one to download data into their local drive.
+
+Commodity production data (hectarage, yield and production) are available at district level for a period from 1982 to 2019 for over five major crops. 
+
+For more information on how to use the dashboard, click on the "How to use" tab on the right. 
+
+This dashboard is a work in progress. We have released it so as to get feedback from potential users. 
+
+
+
+
+
+### Filters
+
+```{r filters}
+bscols(
+  filter_checkbox(
+    id = "Region",
+    label = "Region",
+    sharedData = sd_df,
+    group = ~Region
+  ))
+
+
+filter_select(
+  id = "DISTRICT",
+  label = "District",
+  sharedData = sd_df,
+  group = ~DISTRICT
+)
+
+filter_select(
+   id = "crop",
+   label = "crop",
+   sharedData = sd_df,
+   group = ~crop
+ )
+
+
+filter_select(
+    id = "year",
+    label = "year",
+    sharedData = sd_df,
+    group = ~year
+  )
+
+
+# bscols(
+#   filter_slider(
+#     id = "HAs",
+#     label = "HAs",
+#     sharedData = sd_df,
+#     column = ~HAs,
+#     step = 1,
+#     round = TRUE,
+#     sep = "",
+#     ticks = FALSE
+#   ),
+#   filter_slider(
+#     id = "year",
+#     label = "year",
+#     sharedData = sd_df,
+#     column = ~year,
+#     step = 1,
+#     round = TRUE,
+#     sep = "",
+#     ticks = TRUE
+#   )
+#  )
+```
+
+
+<!-- ```{js} -->
+<!-- function filter_default() { -->
+<!--     document.getElementById("crop").getElementsByClassName("selectized") -->
+<!-- [0].selectize.setValue("Cassava", false); -->
+<!--  } -->
+<!-- window.onload = filter_default; -->
+<!-- ``` -->
+
+
+
+
+<!-- ### Scatterplot -->
+
+<!-- ```{r} -->
+<!-- library(d3scatter) -->
+<!-- #d3scatter(sd_df, x = ~Yield, y = ~HAs,color = ~Region, x_label = "Yield", y_label = "HAs") -->
+
+<!-- library(plotly) -->
+<!-- sd_df %>%  -->
+<!--   plot_ly(x = ~Yield, y = ~HAs, ids = ~DISTRICT,color=~crop, -->
+<!--           hoverinfo = "text", -->
+<!--           text = ~paste("DISTRICT:", DISTRICT, -->
+<!--                         "<br>Yield:", Yield, -->
+<!--                         "<br>HAs:", HAs)) %>% -->
+<!--   add_markers() %>% -->
+<!--   layout(xaxis = list(title = "Yield"), yaxis = list(title = "HAs"), -->
+<!--          title = list(text = "HAs")) -->
+
+
+
+<!-- ``` -->
+
+Column {data-width=400}
+-------------------------------------
+### Datatable
+    
+```{r datatable}
+  DT::datatable(sd_df,
+    filter = "top",  # allows filtering on each column
+    extensions = c(
+      "Buttons",  # add download buttons, etc
+      "Scroller"  # for scrolling down the rows rather than pagination
+    ),
+    rownames = FALSE,  # remove rownames
+    style = "bootstrap",
+    class = "compact",
+    width = "100%",
+    options = list(
+      dom = "Blrtip",  # specify content (search box, etc)
+      deferRender = TRUE,
+      scrollY = 1000,
+      scroller = TRUE,
+      columnDefs = list(
+        list(
+          visible = TRUE,
+          targets = c(2,3:5)
+        )
+      ), 
+      buttons = list(
+        I("colvis"),  # turn columns on and off
+        "copy", # copy to clipboard
+        "csv",  # download as .csv
+        "excel"  # download as .xlsx
+      )
+    ),
+    colnames = c(
+      "DISTRICT",
+      "X",
+      "year",
+      "crop",
+      "HAs",
+      "Yield",
+      "MTs",
+      "Region"))
+```
+
+
+<!-- ### Scatterplot2 -->
+
+<!-- ```{r scatter2} -->
+<!-- #library(d3scatter) -->
+<!-- #d3scatter(sd_df, x = ~Yield, y = ~HAs,color = ~Region, x_label = "Yield", y_label = "HAs") -->
+
+<!-- library(plotly) -->
+<!-- sd_df %>%  -->
+<!--   plot_ly(x = ~Yield, y = ~HAs, ids = ~DISTRICT,color=~Region, -->
+<!--           hoverinfo = "text", -->
+<!--           text = ~paste("DISTRICT:", DISTRICT, -->
+<!--                         "<br>Yield:", Yield, -->
+<!--                         "<br>HAs:", HAs)) %>% -->
+<!--   add_markers() %>% -->
+<!--   layout(xaxis = list(title = "Yield"), yaxis = list(title = "HAs"), -->
+<!--          title = list(text = "HAs")) -->
+
+
+
+<!-- ``` -->
+
+Column {data-width=300}
+-------------------------------------
+    
+### Interactive map
+    
+```{r map}
+# 
+
+  pal <- colorBin(
+  palette = "viridis", domain = HistoricalCrops1982_2009longDistrictdata$HAs,
+  bins = seq(0, max(HistoricalCrops1982_2009longDistrictdata$HAs, na.rm = TRUE) +10000, by = 10000))
+ 
+palYield <- colorBin(
+  palette = "viridis", domain = HistoricalCrops1982_2009longDistrictdata$Yield,
+  bins = seq(0, max(HistoricalCrops1982_2009longDistrictdata$Yield, na.rm = TRUE) + 10000, by = 10000))
+ 
+palMTs <- colorBin(
+  palette = "viridis", domain = HistoricalCrops1982_2009longDistrictdata$MTs,
+  bins = seq(0, max(HistoricalCrops1982_2009longDistrictdata$MTs, na.rm = TRUE) + 50000, by = 50000))
+
+
+#pal <- colorQuantile("viridis", NULL, n = 5)
+
+  leaflet(sd_map)%>%
+  leaflet::addProviderTiles(providers$OpenStreetMap) %>%
+  leaflet::addProviderTiles(providers$Esri.WorldImagery, group="ESRI Satellite",options=leafletOptions(maxNativeZoom=19,maxZoom=100)) %>%
+  
+  leaflet::addPolygons(data =sd_map,fillColor = ~pal(HAs),
+    color = "white",
+    fillOpacity = 0.7,group="HAs",
+    label = ~HAs,
+    highlightOptions = highlightOptions(
+    color = "black",
+    bringToFront = FALSE))%>%
+
+ leaflet::addPolygons(data = sd_mapYield,fillColor = ~ palYield(Yield),
+   color = "white",stroke = FALSE,
+   fillOpacity = 0.7,group="Yield",
+   label = ~Yield,
+   highlightOptions = highlightOptions(
+   color = "black",
+   bringToFront = FALSE))%>%
+    
+  leaflet::addPolygons(data = sd_mapMTs,fillColor = ~ palMTs(MTs),
+   color = "white",stroke = FALSE,
+   fillOpacity = 0.7,group="MTs",
+   label = ~MTs,
+   highlightOptions = highlightOptions(
+   color = "black",
+   bringToFront = FALSE))%>%
+
+ leaflet::addLegend(
+  pal =pal,  values = ~HAs,group="HAs",
+  opacity = 0.7, title = "HAs" )%>%
+
+  leaflet::addMeasure() %>%
+
+  leaflet::addLegend("bottomright",
+  pal =palYield,  values = ~Yield,group="Yield",
+  opacity = 0.7, title = "Yield" )%>%
+    
+  leaflet::addLegend("bottomright",
+  pal =palMTs,  values = ~MTs,group="MTs",
+  opacity = 0.7, title = "MTs" )%>%
+
+# Add layer control elements
+# library(leaflet.extras2)
+#    addTimeslider(data = sd_map2000,
+#              options = timesliderOptions(
+#                position = "topright",
+#                timeAttribute = "year",
+#                range = TRUE)) %>%
+    
+addLayersControl(baseGroups = c("OpenStreetMap", "ESRI Satellite"),
+                    overlayGroups = c("HAs","Yield","MTs"),
+                   options = layersControlOptions(collapsed = TRUE, autoZIndex = FALSE))%>% 
+
+hideGroup("Yield")%>%
+hideGroup("MTs")          
+# 
+# library(mapview)
+# library(widgetframe)
+# library(raster)
+# library(slideview)
+# Goatkeepingsystem2007D2=Goatkeepingsystem2007D
+# sd_map3=sd_map2
+# mapview(list(Malawidistrictboundaries,Malawidistrictboundaries),
+#          zcol=list("HAs","MTs"),
+#           legend=list(FALSE,TRUE),
+#           homebutton=list(TRUE,TRUE))
+
+#sd_map3=slideView(Goatkeepingsystem2007D$Freerng,Goatkeepingsystem2007D2$Tethrng)
+#frameWidget(sd_map3)
+ 
+
+#library(raster)
+#r <- raster(ncol=90, nrow=45)
+#rbound <- rasterize(Malawidistrictboundaries, r, fun=first)
+#grdpts <- makegrid(Malawidistrictboundaries)
+
+## create a grid of points
+#grdpts <- sf::st_make_grid(Malawidistrictboundaries, what = "polygons")
+
+## convert it to an `sf` object, as opposed to an `sfc`
+# my.points <- sf::st_sf(grdpts)
+# Malawidistrictboundariessf=st_as_sf(Malawidistrictboundaries)
+# my.pointssp=as_Spatial(my.points )
+# pointsInside <- sf::st_join(x = my.points, y = Malawidistrictboundariessf, left = FALSE)
+# 
+# pointsInsidesp=as_Spatial(pointsInside)
+
+```
+
+
+
+Production Trends {.storyboard data-icon="fa-info-circle"}
+==================================== 
+
+
+```{r select}
+# bscols(
+#   filter_checkbox(
+#     id = "Region",
+#     label = "Region",
+#     sharedData = sd_df,
+#     group = ~Region
+#   ))
+
+
+# filter_select(
+#   id = "DISTRICT",
+#   label = "District",
+#   sharedData = sd_df,
+#   group = ~DISTRICT
+# )
+
+filter_select(
+   id = "crop",
+   label = "crop",
+   sharedData = sd_df,
+   group = ~crop
+ )
+
+
+  filter_select(
+    id = "year",
+    label = "year",
+    sharedData = sd_df,
+    group = ~year
+  )
+
+```
+
+
+
+### Hectarage
+
+```{r lineplot}
+library(plotly)
+sd_df %>% 
+  plot_ly(x = ~year, y = ~HAs, ids = ~DISTRICT,color=~DISTRICT,
+          hoverinfo = "text",
+          text = ~paste("DISTRICT:", DISTRICT,
+                        "<br>Year:", year,
+                        "<br>HAs:", HAs)) %>%
+  add_lines() %>%
+  layout(xaxis = list(title = "Year"), yaxis = list(title = "HAs"),
+         title = list(text = "HAs"))
+```
+
+
+### Yield
+```{r plotly-crosstalk}
+library(plotly)
+
+sd_df %>% 
+  plot_ly(x = ~year, y = ~Yield, ids = ~DISTRICT,color=~DISTRICT,
+          hoverinfo = "text",
+          text = ~paste("DISTRICT:", DISTRICT,
+                        "<br>Year:", year,
+                        "<br>Yield:", Yield)) %>%
+  add_lines() %>%
+  layout(xaxis = list(title = "Year"), yaxis = list(title = "Yield"),
+         title = list(text = "Yield"))
+
+```
+
+### By crop
+```{r plotly-crosstalk2}
+sd_df %>% 
+  plot_ly(x = ~year, y = ~HAs, ids = ~DISTRICT,color=~crop,
+          hoverinfo = "text",
+          text = ~paste("DISTRICT:", DISTRICT,
+                        "<br>Year:", year,
+                        "<br>HAs:", HAs)) %>%
+  add_lines() %>%
+  layout(xaxis = list(title = "Year"), yaxis = list(title = "HAs"),
+         title = list(text = "HAs"))
+
+
+
+
+
+```
+
+
+### By district
+
+```{r boxplot}
+
+sd_df %>% 
+  plot_ly(y = ~HAs, ids = ~DISTRICT,color=~crop,
+          hoverinfo = "text",
+          text = ~paste("DISTRICT:", DISTRICT,
+                        "<br>Year:", year,
+                        "<br>HAs:", HAs)) %>%
+  add_boxplot(x=~DISTRICT) %>%
+  plotly::layout(xaxis = list(title = "District"), yaxis = list(title = "HAs"),
+         title = list(text = "HAs"))
+```
+
+
+
+
+
+
+How to use {data-orientation=rows data-icon="fa-info-circle"}
+===================================== 
+
+### How to use
+
+#### Filters
+
+You can:
+
+* select one or more regions from the list buttons 
+* select one or more districts from the dropdown menu (remove them with your backspace key)
+* select one or more crops from the dropdown menu (remove them with your backspace key)
+* select one or more years from the dropdown menu (remove them with your backspace key)
+
+#### Interactive map
+
+You can:
+
+* click to grab and drag the map around
+* zoom with the '+' and '--' buttons (top-left) or with your mouse's scroll wheel
+* click a marker to reveal a popup with information about that district
+* click the button showing a broken square (top-left under the zoom options) to select points on the map using a window that's draggable (click and hold the grid icon in the upper left) and resizeable (click and drag the white boxes in each corner)
+
+#### Interactive table
+
+You can:
+
+* filter each column by typing in the boxes under each column header
+* sort the columns (ascending and descending) by clicking on the column header
+* change which columns are visible by clicking the Column visibility button
+* click 'CSV' or 'Excel' to download the filtered data to a .csv file or a .xlsx
+* see how many entries remain after filtering in the bottom-left, where it says 'Showing X to Y of Z entries'
+
+
+
